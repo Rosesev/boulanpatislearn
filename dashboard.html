@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoulanPâtissLearn — Mon livret</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Inter:wght@400;500&display=swap');
+  :root {
+    --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #0F6E56;
+    --amber: #EF9F27; --amber-light: #FAEEDA; --amber-dark: #854F0B;
+    --purple: #7F77DD; --purple-light: #EEEDFE; --purple-dark: #534AB7;
+    --coral: #D85A30; --coral-light: #FAECE7; --coral-dark: #993C1D;
+    --bg: #F7F6F2; --white: #ffffff; --border: rgba(0,0,0,0.08);
+    --text: #1a1a1a; --muted: #6b6b6b; --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  
+  /* NAV */
+  .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .logo span { color: var(--teal); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .btn-formateur { font-size: 12px; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+  .btn-formateur:hover { background: var(--bg); color: var(--text); }
+
+  /* LOGIN */
+  .login-screen { min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 2rem; }
+  .login-card { background: var(--white); border-radius: 20px; border: 1px solid var(--border); padding: 2.5rem 2rem; width: 100%; max-width: 400px; text-align: center; }
+  .login-card h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .login-card p { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; }
+  .field-label { font-size: 12px; font-weight: 500; color: var(--muted); text-align: left; margin-bottom: 5px; display: block; }
+  .field-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin-bottom: 1rem; }
+  .field-input:focus { outline: none; border-color: var(--teal); }
+  .field-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin-bottom: 1.5rem; appearance: none; }
+  .btn-primary { width: 100%; padding: 12px; background: var(--teal); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; transition: background 0.15s; }
+  .btn-primary:hover { background: var(--teal-dark); }
+
+  /* MAIN LAYOUT */
+  .main { display: none; max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  .main.visible { display: block; }
+
+  /* STUDENT HEADER */
+  .student-header { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 14px; }
+  .avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--teal-dark); flex-shrink: 0; }
+  .student-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+  .student-class { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .global-score { margin-left: auto; text-align: right; }
+  .global-pct { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; color: var(--teal); }
+  .global-lbl { font-size: 11px; color: var(--muted); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 1.25rem; }
+  .tab { flex: 1; padding: 8px 6px; font-size: 12px; font-weight: 500; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 7px; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+  .tab.active { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* SEMAINE SELECTOR */
+  .semaines { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .sem { padding: 5px 12px; font-size: 12px; border: 1px solid var(--border); border-radius: 99px; background: var(--white); color: var(--muted); cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+  .sem.active { background: var(--teal); border-color: var(--teal); color: white; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.25rem; }
+  .stat { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* COMP CARDS */
+  .comp-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; margin-bottom: 10px; }
+  .comp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .comp-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .comp-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; }
+  .comp-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .prog-bar { height: 5px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
+  .prog-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+  .obj-list { display: flex; flex-direction: column; gap: 5px; }
+  .obj-row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; cursor: pointer; transition: background 0.1s; }
+  .obj-row:hover { background: var(--bg); }
+  .obj-check { width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid #ccc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .obj-check.done { background: var(--teal); border-color: var(--teal); }
+  .obj-check.done::after { content: ''; width: 5px; height: 5px; background: white; border-radius: 50%; display: block; }
+  .obj-label { font-size: 12px; flex: 1; transition: color 0.15s; }
+  .obj-label.done { text-decoration: line-through; color: var(--muted); }
+  .at-badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 500; flex-shrink: 0; }
+  .at-decouverte { background: #E6F1FB; color: #185FA5; }
+  .at-apprentissage { background: var(--purple-light); color: var(--purple-dark); }
+  .at-renforcement { background: var(--amber-light); color: var(--amber-dark); }
+  .at-autonomie { background: var(--teal-light); color: var(--teal-dark); }
+
+  /* PORTFOLIO */
+  .portfolio-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .prod-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .prod-emoji { height: 80px; display: flex; align-items: center; justify-content: center; font-size: 36px; background: var(--bg); }
+  .prod-body { padding: 10px 12px; }
+  .prod-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; }
+  .prod-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .prod-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .prod-tag { font-size: 10px; padding: 2px 6px; border-radius: 99px; background: var(--bg); color: var(--muted); }
+  .upload-btn { background: var(--white); border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.15s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 140px; }
+  .upload-btn:hover { border-color: var(--teal); }
+  .upload-btn span { font-size: 12px; color: var(--muted); }
+
+  /* RECAP */
+  .recap-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
+  .recap-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 1.1rem; border-bottom: 1px solid var(--border); }
+  .recap-row:last-child { border-bottom: none; }
+  .recap-label { font-size: 13px; color: var(--text); }
+  .recap-val { font-size: 13px; font-weight: 500; }
+  .ok { color: var(--teal); }
+  .pending { color: var(--amber-dark); }
+  .btn-comment { width: 100%; padding: 11px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; font-family: 'Inter', sans-serif; margin-top: 8px; transition: background 0.15s; }
+  .btn-comment:hover { background: var(--teal-light); color: var(--teal-dark); }
+
+  /* SECTION LABEL */
+  .sec-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">🍞 Boulan<span>Pâtiss</span>Learn</div>
+  <div class="nav-right">
+    <button class="btn-formateur" onclick="window.location.href='formateur.html'">Vue formateur →</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div style="font-size:40px; margin-bottom:12px;">👨‍🍳</div>
+    <h2>Mon livret de formation</h2>
+    <p>Connecte-toi pour suivre ta progression</p>
+    <label class="field-label">Ton prénom et initiale (ex: Thomas L.)</label>
+    <input class="field-input" id="input-prenom" type="text" placeholder="Prénom + initiale">
+    <label class="field-label">Ta classe</label>
+    <select class="field-select" id="input-classe">
+      <option value="">-- Choisir ma classe --</option>
+      <option value="2nde">Classe de 2nde Bac Pro</option>
+      <option value="1ere">Classe de 1ère Bac Pro</option>
+    </select>
+    <button class="btn-primary" onclick="login()">Accéder à mon livret</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="main" id="main-app">
+  <div class="student-header">
+    <div class="avatar" id="avatar-initials">TL</div>
+    <div>
+      <div class="student-name" id="display-name">Thomas L.</div>
+      <div class="student-class" id="display-class">2nde Bac Pro</div>
+    </div>
+    <div class="global-score">
+      <div class="global-pct" id="global-pct">0%</div>
+      <div class="global-lbl">progression</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('portfolio')">📸 Portfolio</button>
+    <button class="tab" onclick="switchTab('recap')">✅ Récap séance</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="section active">
+    <div class="sec-label">Semaine en cours</div>
+    <div class="semaines" id="semaines-list"></div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="s-done">0</div><div class="stat-lbl">Validés</div></div>
+      <div class="stat"><div class="stat-num" id="s-total">10</div><div class="stat-lbl">Objectifs</div></div>
+      <div class="stat"><div class="stat-num" id="s-prod">0</div><div class="stat-lbl">Productions</div></div>
+    </div>
+    <div class="sec-label">Compétences de la séance</div>
+    <div id="comp-list"></div>
+  </div>
+
+  <!-- PORTFOLIO -->
+  <div id="portfolio" class="section">
+    <div class="sec-label">Mes productions réalisées</div>
+    <div class="portfolio-grid" id="portfolio-grid"></div>
+  </div>
+
+  <!-- RECAP -->
+  <div id="recap" class="section">
+    <div class="sec-label">Bilan de la séance</div>
+    <div class="recap-card" id="recap-content"></div>
+    <button class="btn-comment" onclick="genererCommentaire()">✨ Générer un commentaire de progression →</button>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
