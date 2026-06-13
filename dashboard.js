@@ -3,7 +3,7 @@
 // Remplacez SUPABASE_URL et SUPABASE_KEY par vos vraies valeurs
 // ============================================================
 
-const SUPABASE_URL = 'https://bwrcvagarvifdzqtbria.supabase.co';
+const SUPABASE_URL = 'https://bwrcvagarvifdzqtbrla.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3cmN2YWdhcnZpZmR6cXRicmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTExNzAsImV4cCI6MjA5Njc2NzE3MH0.5E75-_rTHBTaOsr90Ksj0Yhm0BFe0J0rZV-SAbRuW_M';
 
 // Sauvegarde locale (fonctionne sans Supabase)
