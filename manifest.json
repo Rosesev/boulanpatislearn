@@ -1,0 +1,21 @@
+{
+  "name": "BoulanPâtissLearn",
+  "short_name": "BPLearn",
+  "description": "Mon livret de formation boulangerie-pâtisserie",
+  "start_url": "/boulanpatislearn/dashboard.html",
+  "display": "standalone",
+  "background_color": "#F7F6F2",
+  "theme_color": "#1D9E75",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
