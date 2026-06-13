@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoulanPâtissLearn — Vue Formateur</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Inter:wght@400;500&display=swap');
+  :root {
+    --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #0F6E56;
+    --amber: #EF9F27; --amber-light: #FAEEDA; --amber-dark: #854F0B;
+    --coral-light: #FAECE7; --coral-dark: #993C1D;
+    --bg: #F7F6F2; --white: #ffffff; --border: rgba(0,0,0,0.08);
+    --text: #1a1a1a; --muted: #6b6b6b; --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; }
+  .logo span { color: var(--teal); }
+  .btn-back { font-size: 12px; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif; }
+  .btn-back:hover { background: var(--bg); }
+  .main { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; }
+  .class-tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+  .class-tab { padding: 8px 18px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); border-radius: 99px; background: var(--white); color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+  .class-tab.active { background: var(--teal); border-color: var(--teal); color: white; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+  .stat { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .sec-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+  th { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 14px; text-align: left; background: var(--bg); border-bottom: 1px solid var(--border); }
+  td { font-size: 13px; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf8; }
+  .avatar-sm { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-light); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--teal-dark); margin-right: 8px; vertical-align: middle; }
+  .pill { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; }
+  .pill-ok { background: var(--teal-light); color: var(--teal-dark); }
+  .pill-mid { background: var(--amber-light); color: var(--amber-dark); }
+  .pill-low { background: var(--coral-light); color: var(--coral-dark); }
+  .mini-bar { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; margin-left: 6px; }
+  .mini-fill { height: 100%; border-radius: 99px; background: var(--teal); }
+  .class-section { display: none; }
+  .class-section.active { display: block; }
+  .semaine-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .sem-btn { padding: 5px 12px; font-size: 12px; border: 1px solid var(--border); border-radius: 99px; background: var(--white); color: var(--muted); cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+  .sem-btn.active { background: var(--teal); border-color: var(--teal); color: white; }
+  .loading { text-align: center; padding: 2rem; color: var(--muted); font-size: 14px; }
+  .btn-refresh { padding: 8px 16px; font-size: 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--white); color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif; margin-bottom: 1rem; }
+  .btn-refresh:hover { background: var(--teal-light); color: var(--teal-dark); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">🍞 Boulan<span>Pâtiss</span>Learn</div>
+  <button class="btn-back" onclick="window.location.href='dashboard.html'">← Retour</button>
+</div>
+
+<div class="main">
+  <div class="page-title">Vue formateur</div>
+  <p class="page-sub">Suivi de progression par classe et par semaine</p>
+
+  <button class="btn-refresh" onclick="chargerDonnees()">🔄 Actualiser les données</button>
+
+  <div class="class-tabs">
+    <button class="class-tab active" onclick="switchClass('2nde')">2nde Bac Pro</button>
+    <button class="class-tab" onclick="switchClass('1ere')">1ère Bac Pro</button>
+  </div>
+
+  <!-- 2NDE -->
+  <div id="class-2nde" class="class-section active">
+    <div class="semaine-row" id="semaines-2nde"></div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="nb-eleves-2nde" style="color:var(--teal)">-</div><div class="stat-lbl">Élèves actifs</div></div>
+      <div class="stat"><div class="stat-num" id="moy-2nde">-</div><div class="stat-lbl">Progression moy.</div></div>
+      <div class="stat"><div class="stat-num" id="complets-2nde" style="color:var(--teal)">-</div><div class="stat-lbl">100% validés</div></div>
+      <div class="stat"><div class="stat-num" id="difficile-2nde" style="color:var(--amber-dark)">-</div><div class="stat-lbl">En difficulté</div></div>
+    </div>
+    <div class="sec-label" id="label-2nde">Progression individuelle</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Élève</th>
+          <th>C1 Organiser</th>
+          <th>C2 Réaliser</th>
+          <th>C3 Contrôler</th>
+          <th>C4 Communiquer</th>
+          <th>Global</th>
+        </tr>
+      </thead>
+      <tbody id="table-2nde"><tr><td colspan="6" class="loading">Chargement des données...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- 1ERE -->
+  <div id="class-1ere" class="class-section">
+    <div class="semaine-row" id="semaines-1ere"></div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="nb-eleves-1ere" style="color:var(--teal)">-</div><div class="stat-lbl">Élèves actifs</div></div>
+      <div class="stat"><div class="stat-num" id="moy-1ere">-</div><div class="stat-lbl">Progression moy.</div></div>
+      <div class="stat"><div class="stat-num" id="complets-1ere" style="color:var(--teal)">-</div><div class="stat-lbl">100% validés</div></div>
+      <div class="stat"><div class="stat-num" id="difficile-1ere" style="color:var(--amber-dark)">-</div><div class="stat-lbl">En difficulté</div></div>
+    </div>
+    <div class="sec-label" id="label-1ere">Progression individuelle</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Élève</th>
+          <th>C1 Organiser</th>
+          <th>C2 Réaliser</th>
+          <th>C3 Contrôler</th>
+          <th>C4 Communiquer</th>
+          <th>Global</th>
+        </tr>
+      </thead>
+      <tbody id="table-1ere"><tr><td colspan="6" class="loading">Chargement des données...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://bwrcvagarvifdzqtbrla.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3cmN2YWdhcnZpZmR6cXRicmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTExNzAsImV4cCI6MjA5Njc2NzE3MH0.5E75-_rTHBTaOsr90Ksj0Yhm0BFe0J0rZV-SAbRuW_M';
+
+const semaines = ['S37','S38','S39','S40'];
+const objParComp = { c1: ['c11','c12','c14'], c2: ['c21','c23','c24','c27'], c3: ['c31','c32'], c4: ['c4x'] };
+
+let currentSemaine2nde = 'S37';
+let currentSemaine1ere = 'S37';
+let toutesLesDonnees = [];
+
+function pillClass(v, max) {
+  const pct = v / max;
+  if (pct >= 0.8) return 'pill-ok';
+  if (pct >= 0.4) return 'pill-mid';
+  return 'pill-low';
+}
+
+function renderSemaines() {
+  ['2nde','1ere'].forEach(cls => {
+    const current = cls === '2nde' ? currentSemaine2nde : currentSemaine1ere;
+    document.getElementById('semaines-' + cls).innerHTML = semaines.map(s => `
+      <button class="sem-btn ${s === current ? 'active' : ''}" onclick="selectSemaine('${cls}','${s}')">${s}</button>
+    `).join('');
+  });
+}
+
+function selectSemaine(cls, sem) {
+  if (cls === '2nde') currentSemaine2nde = sem;
+  else currentSemaine1ere = sem;
+  renderSemaines();
+  buildTable(cls);
+}
+
+function buildTable(cls) {
+  const semaine = cls === '2nde' ? currentSemaine2nde : currentSemaine1ere;
+  const donneesCls = toutesLesDonnees.filter(d => d.classe === cls && d.semaine === semaine);
+
+  const elevesMap = {};
+  donneesCls.forEach(d => {
+    if (!elevesMap[d.prenom]) elevesMap[d.prenom] = {};
+    elevesMap[d.prenom][d.objectif_id] = d.done;
+  });
+
+  const eleves = Object.keys(elevesMap);
+  document.getElementById('label-' + cls).textContent = `Progression individuelle — ${semaine}`;
+
+  if (eleves.length === 0) {
+    document.getElementById('table-' + cls).innerHTML = `<tr><td colspan="6" class="loading">Aucune donnée pour cette semaine.</td></tr>`;
+    document.getElementById('nb-eleves-' + cls).textContent = '0';
+    document.getElementById('moy-' + cls).textContent = '-';
+    document.getElementById('complets-' + cls).textContent = '0';
+    document.getElementById('difficile-' + cls).textContent = '0';
+    return;
+  }
+
+  let totalPct = 0, complets = 0, difficiles = 0;
+
+  const rows = eleves.map(prenom => {
+    const data = elevesMap[prenom];
+    const c1 = objParComp.c1.filter(id => data[id]).length;
+    const c2 = objParComp.c2.filter(id => data[id]).length;
+    const c3 = objParComp.c3.filter(id => data[id]).length;
+    const c4 = objParComp.c4.filter(id => data[id]).length;
+    const total = c1 + c2 + c3 + c4;
+    const pct = Math.round(total / 10 * 100);
+    totalPct += pct;
+    if (pct === 100) complets++;
+    if (pct < 40) difficiles++;
+    const initials = prenom.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+    return `<tr>
+      <td><span class="avatar-sm">${initials}</span>${prenom}</td>
+      <td><span class="pill ${pillClass(c1,3)}">${c1}/3</span></td>
+      <td><span class="pill ${pillClass(c2,4)}">${c2}/4</span></td>
+      <td><span class="pill ${pillClass(c3,2)}">${c3}/2</span></td>
+      <td><span class="pill ${pillClass(c4,1)}">${c4}/1</span></td>
+      <td>${pct}%<span class="mini-bar"><span class="mini-fill" style="width:${pct}%"></span></span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-' + cls).innerHTML = rows;
+  document.getElementById('nb-eleves-' + cls).textContent = eleves.length;
+  document.getElementById('moy-' + cls).textContent = Math.round(totalPct / eleves.length) + '%';
+  document.getElementById('complets-' + cls).textContent = complets;
+  document.getElementById('difficile-' + cls).textContent = difficiles;
+}
+
+async function chargerDonnees() {
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/progressions?select=*', {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY
+      }
+    });
+    toutesLesDonnees = await res.json();
+    buildTable('2nde');
+    buildTable('1ere');
+  } catch(e) {
+    document.getElementById('table-2nde').innerHTML = `<tr><td colspan="6" class="loading">Erreur de connexion à Supabase.</td></tr>`;
+    document.getElementById('table-1ere').innerHTML = `<tr><td colspan="6" class="loading">Erreur de connexion à Supabase.</td></tr>`;
+  }
+}
+
+function switchClass(cls) {
+  document.querySelectorAll('.class-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.class-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('class-' + cls).classList.add('active');
+  document.querySelectorAll('.class-tab')[cls === '2nde' ? 0 : 1].classList.add('active');
+}
+
+renderSemaines();
+chargerDonnees();
+</script>
+</body>
+</html>
