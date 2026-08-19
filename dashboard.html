@@ -130,15 +130,41 @@
     <div style="font-size:40px; margin-bottom:12px;">👨‍🍳</div>
     <h2>Mon livret de formation</h2>
     <p>Connecte-toi pour suivre ta progression</p>
-    <label class="field-label">Ton prénom et initiale (ex: Thomas L.)</label>
-    <input class="field-input" id="input-prenom" type="text" placeholder="Prénom + initiale">
-    <label class="field-label">Ta classe</label>
-    <select class="field-select" id="input-classe">
-      <option value="">-- Choisir ma classe --</option>
-      <option value="2nde">Classe de 2nde Bac Pro</option>
-      <option value="1ere">Classe de 1ère Bac Pro</option>
-    </select>
-    <button class="btn-primary" onclick="login()">Accéder à mon livret</button>
+    <div id="login-eleve">
+      <label class="field-label">Ton nom de famille</label>
+      <input class="field-input" id="input-prenom" type="text" placeholder="Ex: Dupont">
+      <label class="field-label">Ta classe</label>
+      <select class="field-select" id="input-classe">
+        <option value="">-- Choisir ma classe --</option>
+        <option value="2nde">Classe de 2nde Bac Pro</option>
+        <option value="1ere">Classe de 1ère Bac Pro</option>
+        <option value="terminale">Classe de Terminale Bac Pro</option>
+      </select>
+      <label class="field-label">Ton code PIN (4 chiffres)</label>
+      <div style="position:relative">
+        <input class="field-input" id="input-pin" type="password" placeholder="••••" maxlength="4" style="padding-right:40px;letter-spacing:6px;font-size:18px">
+        <button type="button" onclick="togglePinVisu()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px" id="eye-pin">👁</button>
+      </div>
+      <div id="login-error-eleve" style="color:#e53e3e;font-size:13px;margin-bottom:8px;display:none"></div>
+      <button class="btn-primary" onclick="login()">Accéder à mon livret</button>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+        <button onclick="showProfLogin()" style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline">Accès formateur</button>
+      </div>
+    </div>
+    <div id="login-prof" style="display:none">
+      <label class="field-label">Identifiant formateur</label>
+      <input class="field-input" id="input-prof-id" type="text" placeholder="identifiant">
+      <label class="field-label">Mot de passe</label>
+      <div style="position:relative">
+        <input class="field-input" id="input-prof-pw" type="password" placeholder="••••••••" style="padding-right:40px">
+        <button type="button" onclick="toggleProfPw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px" id="eye-prof">👁</button>
+      </div>
+      <div id="login-error-prof" style="color:#e53e3e;font-size:13px;margin-bottom:8px;display:none"></div>
+      <button class="btn-primary" onclick="loginProf()">Connexion formateur</button>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+        <button onclick="showEleveLogin()" style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline">← Retour connexion élève</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -290,15 +316,111 @@ const competences = [
 
 const atelierLabels = { decouverte: 'Découverte', apprentissage: 'Apprentissage', renforcement: 'Renforcement', autonomie: 'Autonomie' };
 
+// ===== CODES PIN ÉLÈVES (format: "Prenom I": "1234") =====
+// Modifiez cette liste pour ajouter vos élèves et leurs codes PIN
+const PINS_ELEVES = {
+  // 2nde Bac Pro
+  "Angelis": "2301",
+  "Bernard": "2302",
+  "Bourrez": "2303",
+  "De Gheselle": "2304",
+  "Delrue Lion": "2305",
+  "Dhainaut": "2306",
+  "Dos Santos": "2307",
+  "Ghesquiere": "2308",
+  "Ibos": "2309",
+  "Jeuslin": "2310",
+  "Joire": "2311",
+  // 1ère Bac Pro
+  "Leroy": "1301",
+  "Lozingo": "1302",
+  "Maurer": "1303",
+  "Perard": "1304",
+  "Roussel": "1305",
+  "Roux-Dubois": "1306",
+  "Scotch": "1307",
+  "Thery": "1308",
+  "Van Brabandt": "1309",
+  "Welman": "1310",
+};
+
+// ===== ACCÈS FORMATEUR =====
+const PROF_ID = 'severine.rose';
+const PROF_PW = 'Sr31107155!!!';
+
+function showProfLogin() {
+  document.getElementById('login-eleve').style.display = 'none';
+  document.getElementById('login-prof').style.display = 'block';
+}
+function showEleveLogin() {
+  document.getElementById('login-prof').style.display = 'none';
+  document.getElementById('login-eleve').style.display = 'block';
+}
+function togglePinVisu() {
+  const inp = document.getElementById('input-pin');
+  const eye = document.getElementById('eye-pin');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  eye.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+function toggleProfPw() {
+  const inp = document.getElementById('input-prof-pw');
+  const eye = document.getElementById('eye-prof');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  eye.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+function loginProf() {
+  const id = document.getElementById('input-prof-id').value.trim();
+  const pw = document.getElementById('input-prof-pw').value.trim();
+  const err = document.getElementById('login-error-prof');
+  if (id !== PROF_ID || pw !== PROF_PW) {
+    err.textContent = 'Identifiant ou mot de passe incorrect.';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  // Rediriger vers la page formateur
+  window.location.href = 'formateur.html';
+}
+
 function login() {
   const prenom = document.getElementById('input-prenom').value.trim();
   const classe = document.getElementById('input-classe').value;
-  if (!prenom || !classe) { alert('Merci de renseigner ton prénom et ta classe.'); return; }
+  const pin = document.getElementById('input-pin').value.trim();
+  const err = document.getElementById('login-error-eleve');
+
+  if (!prenom || !classe) {
+    err.textContent = 'Merci de renseigner ton prénom et ta classe.';
+    err.style.display = 'block';
+    return;
+  }
+  if (!pin || pin.length !== 4) {
+    err.textContent = 'Merci de saisir ton code PIN à 4 chiffres.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // Vérification PIN – si l'élève est dans la liste
+  if (Object.keys(PINS_ELEVES).length > 0) {
+    const pinAttendu = PINS_ELEVES[prenom];
+    if (!pinAttendu) {
+      err.textContent = 'Nom non reconnu. Vérifiez votre saisie ou contactez votre formateur.';
+      err.style.display = 'block';
+      return;
+    }
+    if (pin !== pinAttendu) {
+      err.textContent = 'Code PIN incorrect.';
+      err.style.display = 'block';
+      return;
+    }
+  }
+
+  err.style.display = 'none';
   currentUser = { prenom, classe };
   const initiales = prenom.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   document.getElementById('avatar-initials').textContent = initiales;
   document.getElementById('display-name').textContent = prenom;
-  document.getElementById('display-class').textContent = classe === '2nde' ? 'Classe de 2nde Bac Pro' : 'Classe de 1ère Bac Pro';
+  document.getElementById('display-class').textContent = classe === '2nde' ? 'Classe de 2nde Bac Pro' : classe === '1ere' ? 'Classe de 1ère Bac Pro' : 'Classe de Terminale Bac Pro';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').classList.add('visible');
   renderSemaines();
