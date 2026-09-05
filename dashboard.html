@@ -374,7 +374,11 @@ async function loginProf() {
     return;
   }
   err.style.display = 'none';
-  try { sessionStorage.setItem('bpl_prof', 'ok'); } catch (e) {}
+  try {
+    sessionStorage.setItem('bpl_prof', 'ok');
+    sessionStorage.setItem('bpl_prof_id', id);
+    sessionStorage.setItem('bpl_prof_pw', pw);
+  } catch (e) {}
   window.location.href = 'formateur.html';
 }
 
@@ -416,7 +420,7 @@ async function login() {
   // On utilise l'orthographe enregistrée dans la base : le livret déjà rempli
   // reste retrouvé même si l'élève tape son nom différemment.
   const prenom = eleve.cle;
-  currentUser = { prenom, classe };
+  currentUser = { prenom, classe, pin };
   const initiales = prenom.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   document.getElementById('avatar-initials').textContent = initiales;
   document.getElementById('display-name').textContent = eleve.nom_eleve || prenom;
@@ -469,31 +473,36 @@ function countEnAttente() {
 const poids = { c1: 2.5, c2: 2.5, c3: 1.25, c4: 0 };
 
 function calculerNote() {
-  let note = 0;
+  // Calcul strictement identique à celui de la vue formateur : coefficients de
+  // phase appliqués, objectifs désactivés ignorés, résultat ramené sur 20.
+  let note = 0, noteMax = 0;
   competences.forEach(comp => {
     const pts = poids[comp.id];
     comp.objectives.forEach(obj => {
+      if (!isActif(obj.id)) return;
+      const coef = coefficients[getAtelier(obj.id)] || 1;
+      const ptsPonderes = pts * coef;
+      noteMax += ptsPonderes;
       const statut = getStatut(obj.id);
-      if (statut === "valide") note += pts;
-      else if (statut === "en_attente") note += pts * 0.5;
+      if (statut === 'valide') note += ptsPonderes;
+      else if (statut === 'en_attente') note += ptsPonderes * 0.5;
+      else if (statut === 'refuse') note += ptsPonderes * 0.33;
     });
   });
-  return Math.round(note * 10) / 10;
+  if (noteMax === 0) return 0;
+  return Math.round((note / noteMax * 20) * 10) / 10;
 }
 
 async function chargerDonnees() {
   if (!currentUser) return;
   await chargerConfig();
   try {
-    const res = await fetch(
-      SUPABASE_URL + '/rest/v1/progressions?prenom=eq.' + encodeURIComponent(currentUser.prenom) +
-      '&classe=eq.' + encodeURIComponent(currentUser.classe) + '&select=*',
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    const rows = await res.json();
+    const rows = await sbRpc('bp_progressions', {
+      p_nom: currentUser.prenom, p_classe: currentUser.classe, p_pin: currentUser.pin
+    });
     supabaseData = {};
-    rows.forEach(r => { supabaseData[r.semaine + '_' + r.objectif_id] = r; });
-  } catch(e) {}
+    (rows || []).forEach(r => { supabaseData[r.semaine + '_' + r.objectif_id] = r; });
+  } catch(e) { console.error(e); }
   await chargerProductions();
   renderDashboard();
   renderRecap();
@@ -501,46 +510,14 @@ async function chargerDonnees() {
 
 async function saveToSupabase(objId, statut) {
   if (!currentUser) return;
-  const payload = {
-    done: statut !== 'non_fait',
-    statut: statut
-  };
-  // Essayer PATCH d'abord (mise à jour si la ligne existe)
-  const patchRes = await fetch(
-    SUPABASE_URL + '/rest/v1/progressions?prenom=eq.' + encodeURIComponent(currentUser.prenom) +
-    '&classe=eq.' + encodeURIComponent(currentUser.classe) +
-    '&semaine=eq.' + encodeURIComponent(currentSemaine) +
-    '&objectif_id=eq.' + encodeURIComponent(objId),
-    {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(payload)
-    }
-  );
-  const patchData = await patchRes.json();
-  // Si aucune ligne mise à jour, faire un POST
-  if (!patchData || patchData.length === 0) {
-    await fetch(SUPABASE_URL + '/rest/v1/progressions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY
-      },
-      body: JSON.stringify({
-        prenom: currentUser.prenom,
-        classe: currentUser.classe,
-        semaine: currentSemaine,
-        objectif_id: objId,
-        done: statut !== 'non_fait',
-        statut: statut
-      })
+  try {
+    await sbRpc('bp_set_progression', {
+      p_nom: currentUser.prenom, p_classe: currentUser.classe, p_pin: currentUser.pin,
+      p_semaine: currentSemaine, p_objectif: objId, p_statut: statut
     });
+  } catch(e) {
+    console.error(e);
+    alert("Ton changement n'a pas pu être enregistré. Vérifie ta connexion.");
   }
 }
 
@@ -608,12 +585,10 @@ function renderDashboard() {
 async function chargerProductions() {
   if (!currentUser) return;
   try {
-    const res = await fetch(
-      SUPABASE_URL + '/rest/v1/productions?prenom=eq.' + encodeURIComponent(currentUser.prenom) + '&classe=eq.' + encodeURIComponent(currentUser.classe) + '&select=*',
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    mesProductions = await res.json();
-  } catch(e) { mesProductions = []; }
+    mesProductions = await sbRpc('bp_productions', {
+      p_nom: currentUser.prenom, p_classe: currentUser.classe, p_pin: currentUser.pin
+    }) || [];
+  } catch(e) { console.error(e); mesProductions = []; }
   renderPortfolio();
 }
 
@@ -647,35 +622,45 @@ async function sauvegarderProduction() {
   if (!nom) { alert('Merci de donner un nom à ta production.'); return; }
   document.getElementById('upload-status').innerHTML = '<p class="uploading">⏳ Envoi en cours...</p>';
   let photo_url = null;
-  if (file) {
-    const fileName = currentUser.prenom.replace(/\s/g,'_') + '_' + Date.now() + '.' + file.name.split('.').pop();
-    const uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/productions/' + fileName, {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': file.type },
-      body: file
+  try {
+    if (file) {
+      // Nom de fichier aléatoire : la photo n'est plus devinable à partir du nom de l'élève.
+      const alea = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const fileName = alea + '.' + ext;
+      const uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/productions/' + fileName, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': file.type },
+        body: file
+      });
+      if (uploadRes.ok) photo_url = SUPABASE_URL + '/storage/v1/object/public/productions/' + fileName;
+    }
+    await sbRpc('bp_add_production', {
+      p_nom: currentUser.prenom, p_classe: currentUser.classe, p_pin: currentUser.pin,
+      p_semaine: currentSemaine, p_titre: nom, p_competence: comp, p_photo: photo_url
     });
-    if (uploadRes.ok) photo_url = SUPABASE_URL + '/storage/v1/object/public/productions/' + fileName;
+  } catch(e) {
+    console.error(e);
+    document.getElementById('upload-status').innerHTML = '<p style="color:#e53e3e">Envoi impossible. Vérifie ta connexion.</p>';
+    return;
   }
-  await fetch(SUPABASE_URL + '/rest/v1/productions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
-    body: JSON.stringify({ prenom: currentUser.prenom, classe: currentUser.classe, semaine: currentSemaine, nom, competence: comp, photo_url, created_at: new Date().toISOString() })
-  });
   fermerModal();
   chargerProductions();
 }
 
 async function supprimerProduction(id, photoUrl) {
   if (!confirm('Supprimer cette production ?')) return;
-  await fetch(SUPABASE_URL + '/rest/v1/productions?id=eq.' + id, {
-    method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-  });
-  if (photoUrl) {
-    const fileName = photoUrl.split('/productions/')[1];
-    if (fileName) await fetch(SUPABASE_URL + '/storage/v1/object/productions/' + fileName, {
-      method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  try {
+    await sbRpc('bp_del_production', {
+      p_nom: currentUser.prenom, p_classe: currentUser.classe, p_pin: currentUser.pin, p_id: id
     });
-  }
+    if (photoUrl) {
+      const fileName = photoUrl.split('/productions/')[1];
+      if (fileName) await fetch(SUPABASE_URL + '/storage/v1/object/productions/' + fileName, {
+        method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+    }
+  } catch(e) { console.error(e); alert('Suppression impossible.'); return; }
   chargerProductions();
 }
 
