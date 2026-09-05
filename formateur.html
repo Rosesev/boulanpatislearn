@@ -171,6 +171,27 @@ if (sessionStorage.getItem('bpl_prof') !== 'ok') { window.location.replace('dash
 const SUPABASE_URL = 'https://bwrcvagarvifdzqtbrla.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3cmN2YWdhcnZpZmR6cXRicmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTExNzAsImV4cCI6MjA5Njc2NzE3MH0.5E75-_rTHBTaOsr90Ksj0Yhm0BFe0J0rZV-SAbRuW_M';
 
+// ===== Accès sécurisé : identifiants du formateur, valables pour cet onglet =====
+const PROF_SESSION = {
+  id: (function(){ try { return sessionStorage.getItem('bpl_prof_id') || ''; } catch(e){ return ''; } })(),
+  pw: (function(){ try { return sessionStorage.getItem('bpl_prof_pw') || ''; } catch(e){ return ''; } })()
+};
+if (!PROF_SESSION.id || !PROF_SESSION.pw) { window.location.replace('dashboard.html'); }
+
+async function sbRpc(fn, args) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(args || {})
+  });
+  if (!r.ok) { throw new Error(await r.text()); }
+  return r.json();
+}
+
 const semaines = ['S37','S38','S39','S40'];
 const objParComp = { c1: ['c11','c12','c14'], c2: ['c21','c23','c24','c27'], c3: ['c31','c32'], c4: ['c4x'] };
 const compInfo = [
@@ -329,19 +350,13 @@ async function validerObj(objId, statut) {
   badge.textContent = statut==='non_fait'?'Non fait':statut==='en_attente'?'⏳ En attente':statut==='valide'?'✅ Validé':'❌ À retravailler';
 
   const comment = document.getElementById('comment-'+objId)?.value || '';
-  await fetch(SUPABASE_URL + '/rest/v1/progressions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Prefer': 'resolution=merge-duplicates'
-    },
-    body: JSON.stringify({
-      prenom: ficheEleve, classe: ficheClasse, semaine: ficheSemaine,
-      objectif_id: objId, done: statut==='valide', statut, commentaire_formateur: comment
-    })
-  });
+  try {
+    await sbRpc('bp_prof_set_progression', {
+      p_id: PROF_SESSION.id, p_pw: PROF_SESSION.pw,
+      p_eleve: ficheEleve, p_classe: ficheClasse, p_semaine: ficheSemaine,
+      p_objectif: objId, p_statut: statut, p_commentaire: comment
+    });
+  } catch(e) { console.error(e); alert("Enregistrement impossible."); return; }
   await chargerDonnees();
 }
 
@@ -349,19 +364,13 @@ async function sauvegarderCommentaire(objId) {
   const comment = document.getElementById('comment-'+objId)?.value || '';
   const row = toutesLesDonnees.find(d => d.prenom===ficheEleve && d.classe===ficheClasse && d.semaine===ficheSemaine && d.objectif_id===objId);
   const statut = row?.statut || 'non_fait';
-  await fetch(SUPABASE_URL + '/rest/v1/progressions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Prefer': 'resolution=merge-duplicates'
-    },
-    body: JSON.stringify({
-      prenom: ficheEleve, classe: ficheClasse, semaine: ficheSemaine,
-      objectif_id: objId, done: statut==='valide', statut, commentaire_formateur: comment
-    })
-  });
+  try {
+    await sbRpc('bp_prof_set_progression', {
+      p_id: PROF_SESSION.id, p_pw: PROF_SESSION.pw,
+      p_eleve: ficheEleve, p_classe: ficheClasse, p_semaine: ficheSemaine,
+      p_objectif: objId, p_statut: statut, p_commentaire: comment
+    });
+  } catch(e) { console.error(e); alert("Enregistrement du commentaire impossible."); }
 }
 
 function fermerFiche() {
@@ -401,7 +410,8 @@ function calculerNoteFormateur(data, cfg) {
       noteMax += ptsPonderes;
       const statut = data[obj.id]?.statut || 'non_fait';
       if (statut === 'valide') note += ptsPonderes;
-      else if (statut === 'en_attente') note += ptsPonderes * 0.5;
+      // « en attente » = auto-évaluation de l'élève : ne rapporte aucun point
+      // tant que le formateur n'a pas validé.
       else if (statut === 'refuse') note += ptsPonderes * 0.33;
     });
   });
@@ -411,12 +421,12 @@ function calculerNoteFormateur(data, cfg) {
 
 async function chargerDonnees() {
   try {
-    const [resP, resProd] = await Promise.all([
-      fetch(SUPABASE_URL+'/rest/v1/progressions?select=*', { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY } }),
-      fetch(SUPABASE_URL+'/rest/v1/productions?select=*', { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY } })
+    const [prog, prod] = await Promise.all([
+      sbRpc('bp_prof_progressions', { p_id: PROF_SESSION.id, p_pw: PROF_SESSION.pw }),
+      sbRpc('bp_prof_productions',  { p_id: PROF_SESSION.id, p_pw: PROF_SESSION.pw })
     ]);
-    toutesLesDonnees = await resP.json();
-    toutesLesProductions = await resProd.json();
+    toutesLesDonnees = prog || [];
+    toutesLesProductions = prod || [];
     buildTable('2nde'); buildTable('1ere');
   } catch(e) {
     ['2nde','1ere'].forEach(cls => document.getElementById('table-'+cls).innerHTML = `<tr><td colspan="7" class="loading">Erreur de connexion.</td></tr>`);

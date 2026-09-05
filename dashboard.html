@@ -205,7 +205,8 @@
     </div>
     <div class="global-score">
       <div class="global-pct" id="global-pct">0/20</div>
-      <div class="global-lbl">note sur 20</div>
+      <div class="global-lbl">note validée sur 20</div>
+      <div class="global-lbl" id="auto-eval" style="margin-top:2px"></div>
     </div>
   </div>
 
@@ -485,7 +486,8 @@ function calculerNote() {
       noteMax += ptsPonderes;
       const statut = getStatut(obj.id);
       if (statut === 'valide') note += ptsPonderes;
-      else if (statut === 'en_attente') note += ptsPonderes * 0.5;
+      // « en attente » = auto-évaluation de l'élève : ne rapporte aucun point
+      // tant que le formateur n'a pas validé.
       else if (statut === 'refuse') note += ptsPonderes * 0.33;
     });
   });
@@ -542,6 +544,11 @@ function renderDashboard() {
   document.getElementById('s-total').textContent = total;
   document.getElementById('s-prod').textContent = mesProductions.filter(p => p.semaine === currentSemaine).length;
   document.getElementById('global-pct').textContent = calculerNote() + '/20';
+  // L'auto-évaluation reste visible : elle ne compte pas dans la note, mais
+  // montre à l'élève où elle se positionne en attendant la validation.
+  const enAttenteTotal = competences.flatMap(c => c.objectives).filter(o => getStatut(o.id) === 'en_attente').length;
+  document.getElementById('auto-eval').textContent =
+    enAttenteTotal > 0 ? '⏳ ' + enAttenteTotal + ' en attente de validation' : '';
 
   document.getElementById('comp-list').innerHTML = competences.map(comp => {
     const valides = comp.objectives.filter(o => getStatut(o.id) === 'valide').length;
