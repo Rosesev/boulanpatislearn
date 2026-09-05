@@ -88,6 +88,11 @@
 </style>
 </head>
 <body>
+<script>
+// Accès réservé : sans connexion formateur préalable, on renvoie vers la page d'accueil.
+if (sessionStorage.getItem('bpl_prof') !== 'ok') { window.location.replace('dashboard.html'); }
+</script>
+
 
 <div class="topbar">
   <div class="logo">🍞 Boulan<span>Pâtiss</span>Learn</div>

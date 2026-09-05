@@ -316,37 +316,22 @@ const competences = [
 
 const atelierLabels = { decouverte: 'Découverte', apprentissage: 'Apprentissage', renforcement: 'Renforcement', autonomie: 'Autonomie' };
 
-// ===== CODES PIN ÉLÈVES (format: "Prenom I": "1234") =====
-// Modifiez cette liste pour ajouter vos élèves et leurs codes PIN
-const PINS_ELEVES = {
-  // 2nde Bac Pro
-  "Angelis": "2301",
-  "Bernard": "2302",
-  "Bourrez": "2303",
-  "De Gheselle": "2304",
-  "Delrue Lion": "2305",
-  "Dhainaut": "2306",
-  "Dos Santos": "2307",
-  "Ghesquiere": "2308",
-  "Ibos": "2309",
-  "Jeuslin": "2310",
-  "Joire": "2311",
-  // 1ère Bac Pro
-  "Leroy": "1301",
-  "Lozingo": "1302",
-  "Maurer": "1303",
-  "Perard": "1304",
-  "Roussel": "1305",
-  "Roux-Dubois": "1306",
-  "Scotch": "1307",
-  "Thery": "1308",
-  "Van Brabandt": "1309",
-  "Welman": "1310",
-};
-
-// ===== ACCÈS FORMATEUR =====
-const PROF_ID = 'severine.rose';
-const PROF_PW = 'Sr31107155!!!';
+// ===== Connexion sécurisée =====
+// Aucun code PIN ni mot de passe n'est stocké dans cette page : la vérification
+// est faite par la base de données (fonctions dl_login_pin et dl_login).
+async function sbRpc(fn, args) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(args || {})
+  });
+  if (!r.ok) { throw new Error(await r.text()); }
+  return r.json();
+}
 
 function showProfLogin() {
   document.getElementById('login-eleve').style.display = 'none';
@@ -369,28 +354,38 @@ function toggleProfPw() {
   eye.textContent = inp.type === 'password' ? '👁' : '🙈';
 }
 
-function loginProf() {
+async function loginProf() {
   const id = document.getElementById('input-prof-id').value.trim();
   const pw = document.getElementById('input-prof-pw').value.trim();
   const err = document.getElementById('login-error-prof');
-  if (id !== PROF_ID || pw !== PROF_PW) {
+  let u = null;
+  try {
+    const rows = await sbRpc('dl_login', { p_id: id, p_pw: pw });
+    u = Array.isArray(rows) ? rows[0] : rows;
+  } catch (e) {
+    console.error(e);
+    err.textContent = 'Connexion impossible. Vérifiez votre connexion internet.';
+    err.style.display = 'block';
+    return;
+  }
+  if (!u || u.role !== 'prof') {
     err.textContent = 'Identifiant ou mot de passe incorrect.';
     err.style.display = 'block';
     return;
   }
   err.style.display = 'none';
-  // Rediriger vers la page formateur
+  try { sessionStorage.setItem('bpl_prof', 'ok'); } catch (e) {}
   window.location.href = 'formateur.html';
 }
 
-function login() {
-  const prenom = document.getElementById('input-prenom').value.trim();
+async function login() {
+  const nom = document.getElementById('input-prenom').value.trim();
   const classe = document.getElementById('input-classe').value;
   const pin = document.getElementById('input-pin').value.trim();
   const err = document.getElementById('login-error-eleve');
 
-  if (!prenom || !classe) {
-    err.textContent = 'Merci de renseigner ton prénom et ta classe.';
+  if (!nom || !classe) {
+    err.textContent = 'Merci de renseigner ton nom et ta classe.';
     err.style.display = 'block';
     return;
   }
@@ -400,26 +395,31 @@ function login() {
     return;
   }
 
-  // Vérification PIN – si l'élève est dans la liste
-  if (Object.keys(PINS_ELEVES).length > 0) {
-    const pinAttendu = PINS_ELEVES[prenom];
-    if (!pinAttendu) {
-      err.textContent = 'Nom non reconnu. Vérifiez votre saisie ou contactez votre formateur.';
-      err.style.display = 'block';
-      return;
-    }
-    if (pin !== pinAttendu) {
-      err.textContent = 'Code PIN incorrect.';
-      err.style.display = 'block';
-      return;
-    }
+  // Vérification par la base de données
+  let eleve = null;
+  try {
+    const rows = await sbRpc('dl_login_pin', { p_nom: nom, p_classe: classe, p_pin: pin });
+    eleve = Array.isArray(rows) ? rows[0] : rows;
+  } catch (e) {
+    console.error(e);
+    err.textContent = 'Connexion impossible. Vérifie ta connexion internet.';
+    err.style.display = 'block';
+    return;
+  }
+  if (!eleve || !eleve.cle) {
+    err.textContent = 'Nom, classe ou code PIN incorrect.';
+    err.style.display = 'block';
+    return;
   }
 
   err.style.display = 'none';
+  // On utilise l'orthographe enregistrée dans la base : le livret déjà rempli
+  // reste retrouvé même si l'élève tape son nom différemment.
+  const prenom = eleve.cle;
   currentUser = { prenom, classe };
   const initiales = prenom.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   document.getElementById('avatar-initials').textContent = initiales;
-  document.getElementById('display-name').textContent = prenom;
+  document.getElementById('display-name').textContent = eleve.nom_eleve || prenom;
   document.getElementById('display-class').textContent = classe === '2nde' ? 'Classe de 2nde Bac Pro' : classe === '1ere' ? 'Classe de 1ère Bac Pro' : 'Classe de Terminale Bac Pro';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').classList.add('visible');
